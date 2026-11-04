@@ -463,7 +463,14 @@ def init_model(
     if reference_sampling is not None:
         raise ValueError("reference sampling is supported for Drama 3 checkpoints only")
 
-    model = DualARTransformer.from_pretrained(checkpoint_path, load_weights=True)
+    # FISH_MAX_SEQ_LEN shrinks the KV cache and causal mask (both sized by
+    # max_seq_len, 32768 by default) so S2-Pro fits on 16 GB GPUs.
+    max_seq_len = os.environ.get("FISH_MAX_SEQ_LEN")
+    model = DualARTransformer.from_pretrained(
+        checkpoint_path,
+        load_weights=True,
+        max_length=int(max_seq_len) if max_seq_len else None,
+    )
 
     model = model.to(device=device, dtype=precision)
     logger.info(f"Restored model from checkpoint")
